@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雅思阅读AI训练工具 - 原型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            min-height: 700px;
+        }
+
+        /* 左侧题目面板 */
+        .question-panel {
+            background: #f8f9fa;
+            border-right: 2px solid #e9ecef;
+            padding: 25px;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .question-type-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .question-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .question-text .highlight {
+            background: linear-gradient(120deg, #ffeaa7 0%, #fdcb6e 100%);
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .question-text .highlight:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(253, 203, 110, 0.5);
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+
+        .option.correct {
+            border-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .option.wrong {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        /* 右侧AI助手面板 */
+        .ai-panel {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .ai-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .ai-info h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .ai-info p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .step {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .step.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .ai-message-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .ai-message {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .ai-message .role {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .ai-message .content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #333;
+        }
+
+        .ai-message .tip-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .ai-message .warning-box {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .ai-message .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 策略卡片 */
+        .strategy-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .strategy-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: 0.95;
+        }
+
+        .strategy-card p {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        /* 词汇标注 */
+        .vocabulary-highlight {
+            background: #c5e1a5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .question-panel {
+                max-height: 400px;
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>雅思阅读AI训练工具</h1>
+                <p class="subtitle">Cambridge IELTS 5-20 · 智能带练系统</p>
+            </div>
+            <div style="font-size: 14px; opacity: 0.9;">
+                👤 用户：小明 | 当前分数：6.0
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 左侧题目 -->
+            <div class="question-panel">
+                <div class="strategy-card" id="strategyCard">
+                    <h3>📚 判断题策略</h3>
+                    <p>重点关注程度副词和绝对化词汇。False = 原文明确说反；NG = 原文未提及</p>
+                </div>
+
+                <div class="question-card">
+                    <span class="question-number">14</span>
+                    <span class="question-type-badge">TRUE / FALSE / NOT GIVEN</span>
+                    <p class="question-text" id="questionText">
+                        The <span class="highlight">phenomenon</span> described in the passage is <span class="highlight">most similar to</span> the pattern observed in urban migration studies.
+                    </p>
+
+                    <div class="options" id="optionsContainer">
+                        <div class="option" onclick="selectOption(0)">TRUE</div>
+                        <div class="option" onclick="selectOption(1)">FALSE</div>
+                        <div class="option" onclick="selectOption(2)">NOT GIVEN</div>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <span class="question-number">15</span>
+                    <span class="question-type-badge">Sentence Completion</span>
+                    <p class="question-text">
+                        Research suggests that digital natives process information in a way that is fundamentally ________ from previous generations.
+                    </p>
+                    <input type="text" placeholder="输入答案（最多2个词）" 
+                           style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; margin-top: 10px; font-size: 14px;"
+                           id="fillBlankInput">
+                </div>
+            </div>
+
+            <!-- 右侧AI助手 -->
+            <div class="ai-panel">
+                <div class="ai-header">
+                    <div class="ai-avatar">🤖</div>
+                    <div class="ai-info">
+                        <h2>AI 阅读教练</h2>
+                        <p>正在引导你完成剑桥雅思15 - Test 1 Reading</p>
+                    </div>
+                </div>
+
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1. 审题</div>
+                    <div class="step" id="step2">2. 定位</div>
+                    <div class="step" id="step3">3. 推理</div>
+                    <div class="step" id="step4">4. 答题</div>
+                    <div class="step" id="step5">5. 复盘</div>
+                </div>
+
+                <div class="ai-message-area" id="messageArea">
+                    <!-- AI消息会动态添加到这里 -->
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="nextStepBtn" onclick="nextStep()">
+                        ✓ 开始审题
+                    </button>
+                    <button class="btn btn-secondary" id="showAnswerBtn" onclick="showAnswer()" style="display: none;">
+                        👁️ 查看答案
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn" onclick="resetExercise()">
+                        🔄 重新开始
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 当前步骤状态
+        let currentStep = 1;
+        let selectedOption = -1;
+        let isCorrect = false;
+
+        // AI消息数据
+        const aiMessages = {
+            step1: [
+                {
+                    role: "🧠 审题引导",
+                    content: "我们来分析第14题。这是一道经典的判断题（TRUE/FALSE/NG）。",
+                    tip: "判断题的关键是找到原文中的对应信息，然后判断题目陈述与原文的关系。"
+                },
+                {
+                    role: "🔍 定位词识别",
+                    content: "我已经帮你标注了题干中的关键定位词：",
+                    tip: "⚠️ 高危预警：'phenomenon' 和 'similar' 这两个词很容易在原文中被同义替换。不要只盯着原词找！"
+                },
+                {
+                    role: "💭 策略提示",
+                    content: "这道题的逻辑结构是：A现象 与 B模式 'most similar to'（最相似）。",
+                    warning: "注意程度副词 'most' —— 如果原文只是说 'somewhat similar'（有点相似），那应该选什么？"
+                },
+                {
+                    role: "✅ 审题检查",
+                    content: "你已经完成了审题。现在明确知道：\n• 题型：判断题\n• 定位词：phenomenon / similar / urban migration\n• 关键逻辑：比较关系 + 程度限定",
+                    success: "审题质量：优秀！你注意到了比较结构，这非常关键。"
+                }
+            ],
+            step2: [
+                {
+                    role: "📍 定位引导",
+                    content: "现在我们开始定位。根据你的审题，我们需要在文章中找到讨论 'phenomenon' 和 'urban migration' 模式对比的段落。"
+                },
+                {
+                    role: "💡 定位技巧",
+                    content: "我的建议是：用组合定位词 'phenomenon + urban migration' 一起找，这样准确率更高。",
+                    tip: "通常这类比较性的题目，答案出现在段落的主题句或转折处（however/but）之后。"
+                },
+                {
+                    role: "🎯 目标锁定",
+                    content: "定位成功！目标信息在文章第3段：\n\n'While the phenomenon shows superficial resemblance to urban migration patterns, a deeper analysis reveals fundamental differences in the underlying drivers...'",
+                    tip: "你看，原文中 'phenomenon' 没有被替换，但 'similar' 换成了 'resemblance'（相似），这说明你的定位策略是对的！"
+                }
+            ],
+            step3: [
+                {
+                    role: "🔬 推理分析",
+                    content: "现在我们来对比题目和原文：\n\n题目：is most similar to\n原文：shows superficial resemblance"
+                },
+                {
+                    role: "⚖️ 逻辑对比",
+                    content: "关键区别：\n• 题目说 'most similar'（最相似）\n• 原文说 'superficial resemblance'（表面相似）",
+                    warning: "'superficial' 的意思是表面的、肤浅的。这直接否定了 'most similar' 的说法。"
+                },
+                {
+                    role: "🎯 结论",
+                    content: "因此，答案是 FALSE。\n\n题目说"最相似"，但原文明确说了只是"表面相似"，本质不同。这就是典型的 False —— 原文明确说了反话。"
+                }
+            ],
+            step4: [
+                {
+                    role: "✨ 答题确认",
+                    content: "请在左侧选择 FALSE，看看你做对了没有！",
+                    success: "记住：程度副词（most, completely, entirely）在判断题中往往是解题的关键。"
+                }
+            ],
+            step5: [
+                {
+                    role: "📊 复盘总结",
+                    content: "太棒了！你答对了！让我们总结一下这道题的要点：",
+                    success: "✅ 正确答案：FALSE"
+                },
+                {
+                    role: "📝 错题本（如有错误）",
+                    content: "这道题没有错误，但你需要记住以下要点：",
+                    tip: "1. 程度副词是判断题的关键信号词\n2. 'superficial' = 表面的，是反向信号\n3. False和NG的区别：False是明确相反，NG是未提及"
+                },
+                {
+                    role: "📚 词汇拓展",
+                    content: "这道题涉及的核心词汇：\n\n• phenomenon → 现象\n• resemblance → 相似\n• superficial → 表面的、肤浅的\n• fundamental → 根本的",
+                    tip: "建议把 'superficial' 加入你的词汇本，它在雅思阅读中经常作为反向信号词出现。"
+                }
+            ]
+        };
+
+        // 初始化
+        function init() {
+            addAIMessage(aiMessages.step1[0]);
+            setTimeout(() => {
+                addAIMessage(aiMessages.step1[1]);
+                setTimeout(() => {
+                    addAIMessage(aiMessages.step1[2]);
+                    setTimeout(() => {
+                        addAIMessage(aiMessages.step1[3]);
+                        document.getElementById('nextStepBtn').innerText = '→ 开始定位';
+                    }, 500);
+                }, 500);
+            }, 500);
+        }
+
+        // 添加AI消息
+        function addAIMessage(message) {
+            const messageArea = document.getElementById('messageArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            
+            let content = `<div class="role">${message.role}</div>`;
+            content += `<div class="content">${message.content.replace(/\n/g, '<br>')}</div>`;
+            
+            if (message.tip) {
+                content += `<div class="tip-box">${message.tip}</div>`;
+            }
+            if (message.warning) {
+                content += `<div class="warning-box">${message.warning}</div>`;
+            }
+            if (message.success) {
+                content += `<div class="success-box">${message.success}</div>`;
+            }
+            
+            messageDiv.innerHTML = content;
+            messageArea.appendChild(messageDiv);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        // 下一步
+        function nextStep() {
+            if (currentStep >= 5) {
+                // 重置
+                resetExercise();
+                return;
+            }
+
+            currentStep++;
+            updateStepIndicator();
+            
+            const messages = aiMessages['step' + currentStep];
+            if (messages) {
+                messages.forEach((msg, index) => {
+                    setTimeout(() => {
+                        addAIMessage(msg);
+                    }, index * 500);
+                });
+            }
+
+            // 更新按钮文字
+            const btn = document.getElementById('nextStepBtn');
+            const stepNames = ['', '', '→ 开始推理', '→ 确认答案', '→ 下一题'];
+            btn.innerText = stepNames[currentStep];
+
+            if (currentStep === 4) {
+                document.getElementById('showAnswerBtn').style.display = 'flex';
+            }
+        }
+
+        // 更新步骤指示器
+        function updateStepIndicator() {
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'completed');
+                if (i < currentStep) {
+                    step.classList.add('completed');
+                } else if (i === currentStep) {
+                    step.classList.add('active');
+                }
+            }
+        }
+
+        // 选择选项
+        function selectOption(index) {
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[index].classList.add('selected');
+            
+            selectedOption = index;
+            
+            if (index === 1) { // FALSE是正确答案
+                isCorrect = true;
+                setTimeout(() => {
+                    options[index].classList.add('correct');
+                    addAIMessage({
+                        role: "🎉 正确！",
+                        content: "你答对了！这就是我们之前分析的：原文说 'superficial resemblance'，题目说 'most similar'，程度不同，所以选 FALSE。",
+                        success: "继续保持对程度副词的敏感度！"
+                    });
+                    document.getElementById('nextStepBtn').innerText = '→ 查看复盘';
+                }, 300);
+            } else {
+                isCorrect = false;
+                setTimeout(() => {
+                    options[index].classList.add('wrong');
+                    addAIMessage({
+                        role: "❌ 再想想",
+                        content: "不太对哦。回顾一下我们之前的分析：原文说的是 'superficial resemblance'（表面相似），而题目说的是 'most similar'（最相似）。",
+                        warning: "程度不同就是 False。再试一次？"
+                    });
+                }, 300);
+            }
+        }
+
+        // 显示答案
+        function showAnswer() {
+            addAIMessage({
+                role: "👁️ 答案",
+                content: "正确答案是：FALSE",
+                success: "解析：原文说 'superficial resemblance'（表面相似），题目说 'most similar'（最相似）。程度不同 = False。"
+            });
+        }
+
+        // 重置练习
+        function resetExercise() {
+            currentStep = 1;
+            selectedOption = -1;
+            isCorrect = false;
+            
+            // 清空消息区域
+            document.getElementById('messageArea').innerHTML = '';
+            
+            // 重置步骤指示器
+            updateStepIndicator();
+            
+            // 重置选项
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => {
+                opt.classList.remove('selected', 'correct', 'wrong');
+            });
+            
+            // 重置按钮
+            document.getElementById('nextStepBtn').innerText = '✓ 开始审题';
+            document.getElementById('showAnswerBtn').style.display = 'none';
+            
+            // 重新初始化
+            init();
+        }
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            init();
+        };
+    </script>
+</body>
+</html>
